@@ -9,12 +9,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
-	socks5 "github.com/armon/go-socks5"
-	"github.com/hashicorp/yamux"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	socks5 "github.com/armon/go-socks5"
+	"github.com/hashicorp/yamux"
 
 	ntlmssp "github.com/kost/go-ntlmssp"
 )
@@ -25,7 +26,7 @@ var username string
 var domain string
 var password string
 var connectproxystring string
-var useragent string
+var userAgent string
 var proxytimeout = time.Millisecond * 1000 //timeout for proxyserver response
 
 func connectviaproxy(proxyaddr string, connectaddr string) net.Conn {
@@ -41,14 +42,14 @@ func connectviaproxy(proxyaddr string, connectaddr string) net.Conn {
 		negheader := fmt.Sprintf("NTLM %s", base64.StdEncoding.EncodeToString(negotiateMessage))
 
 		connectproxystring = "CONNECT " + connectaddr + " HTTP/1.1" + "\r\nHost: " + connectaddr +
-			"\r\nUser-Agent: " + useragent +
+			"\r\nUser-Agent: " + userAgent +
 			"\r\nProxy-Authorization: " + negheader +
 			"\r\nProxy-Connection: Keep-Alive" +
 			"\r\n\r\n"
 
 	} else {
 		connectproxystring = "CONNECT " + connectaddr + " HTTP/1.1" + "\r\nHost: " + connectaddr +
-			"\r\nUser-Agent: " + useragent +
+			"\r\nUser-Agent: " + userAgent +
 			"\r\nProxy-Connection: Keep-Alive" +
 			"\r\n\r\n"
 	}
@@ -163,8 +164,8 @@ func connectviaproxy(proxyaddr string, connectaddr string) net.Conn {
 		//disable socket read timeouts
 		conn.SetReadDeadline(time.Now().Add(100 * time.Hour))
 
-		if (resp.StatusCode == 200 || strings.Contains(status, "HTTP/1.1 200 ") ||
-		strings.Contains(status, "HTTP/1.0 200 ")) {
+		if resp.StatusCode == 200 || strings.Contains(status, "HTTP/1.1 200 ") ||
+			strings.Contains(status, "HTTP/1.0 200 ") {
 			log.Print("Connected via proxy")
 			return conn
 		}
