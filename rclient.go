@@ -3,13 +3,12 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"log"
 	"net"
 
 	"bufio"
-	"bytes"
 	"encoding/base64"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -34,8 +33,7 @@ func connectviaproxy(proxyaddr string, connectaddr string) net.Conn {
 	if (username != "") && (password != "") && (domain != "") {
 		negotiateMessage, errn := ntlmssp.NewNegotiateMessage(domain, "")
 		if errn != nil {
-			log.Println("NEG error")
-			log.Println(errn)
+			log.Println("NEG error: ", errn)
 			// return nil
 		}
 		log.Print(negotiateMessage)
@@ -64,10 +62,11 @@ func connectviaproxy(proxyaddr string, connectaddr string) net.Conn {
 		log.Printf("Error connect: %v", err)
 	}
 	conn.Write([]byte(connectproxystring))
-
 	time.Sleep(proxytimeout) //Because socket does not close - we need to sleep for full response from proxy
-
 	resp, err := http.ReadResponse(bufio.NewReader(conn), &http.Request{Method: "CONNECT"})
+	if err != nil {
+		return nil
+	}
 	status := resp.Status
 
 	if socksdebug {
@@ -75,7 +74,8 @@ func connectviaproxy(proxyaddr string, connectaddr string) net.Conn {
 		log.Print(resp)
 	}
 
-	if (resp.StatusCode == 200) || (strings.Contains(status, "HTTP/1.1 200 ")) ||
+	if (resp.StatusCode == 200) ||
+		(strings.Contains(status, "HTTP/1.1 200 ")) ||
 		(strings.Contains(status, "HTTP/1.0 200 ")) {
 		log.Print("Connected via proxy. No auth required")
 		return conn
@@ -133,14 +133,8 @@ func connectviaproxy(proxyaddr string, connectaddr string) net.Conn {
 			if socksdebug {
 				log.Print("Got Basic challenge:")
 			}
-			var authbuffer bytes.Buffer
-			authbuffer.WriteString(username)
-			authbuffer.WriteString(":")
-			authbuffer.WriteString(password)
 
-			basicauth := encBase64(authbuffer.Bytes())
-
-			//log.Print(authenticate)
+			basicauth := encBase64([]byte(username + ":" + password))
 			connectproxystring = "CONNECT " + connectaddr + " HTTP/1.1" + "\r\nHost: " + connectaddr +
 				"\r\nUser-Agent: Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko" +
 				"\r\nProxy-Authorization: Basic " + basicauth +
@@ -157,14 +151,13 @@ func connectviaproxy(proxyaddr string, connectaddr string) net.Conn {
 		//read response
 		bufReader := bufio.NewReader(conn)
 		conn.SetReadDeadline(time.Now().Add(proxytimeout))
-		statusb, _ := ioutil.ReadAll(bufReader)
-
+		statusb, _ := io.ReadAll(bufReader)
 		status = string(statusb)
 
 		//disable socket read timeouts
 		conn.SetReadDeadline(time.Now().Add(100 * time.Hour))
-
-		if resp.StatusCode == 200 || strings.Contains(status, "HTTP/1.1 200 ") ||
+		if resp.StatusCode == 200 ||
+			strings.Contains(status, "HTTP/1.1 200 ") ||
 			strings.Contains(status, "HTTP/1.0 200 ") {
 			log.Print("Connected via proxy")
 			return conn
@@ -179,7 +172,6 @@ func connectviaproxy(proxyaddr string, connectaddr string) net.Conn {
 }
 
 func connectForSocks(tlsenable bool, verify bool, address string, proxy string) error {
-	var session *yamux.Session
 	server, err := socks5.New(&socks5.Config{})
 	if err != nil {
 		return err
@@ -190,10 +182,6 @@ func connectForSocks(tlsenable bool, verify bool, address string, proxy string) 
 	}
 
 	var conn net.Conn
-	var connp net.Conn
-	var newconn net.Conn
-	//var conntls tls.Conn
-	//var conn tls.Conn
 	if proxy == "" {
 		log.Println("Connecting to far end")
 		if tlsenable {
@@ -206,38 +194,31 @@ func connectForSocks(tlsenable bool, verify bool, address string, proxy string) 
 		}
 	} else {
 		log.Println("Connecting to proxy ...")
-		connp = connectviaproxy(proxy, address)
-		if connp != nil {
-			log.Println("Proxy successfull. Connecting to far end")
-			if tlsenable {
-				conntls := tls.Client(connp, conf)
-				err := conntls.Handshake()
-				if err != nil {
-					log.Printf("Error connect: %v", err)
-					return err
-				}
-				newconn = net.Conn(conntls)
-			} else {
-				newconn = connp
-			}
-		} else {
-			log.Println("Proxy NOT successfull. Exiting")
+		proxyConn := connectviaproxy(proxy, address)
+		if proxyConn == nil {
+			log.Println("Proxy NOT successful. Exiting")
 			return nil
+		}
+		conn = proxyConn
+
+		log.Println("Proxy successful. Connecting to far end")
+		if tlsenable {
+			conntls := tls.Client(conn, conf)
+			err := conntls.Handshake()
+			if err != nil {
+				log.Printf("Error connect: %v", err)
+				return err
+			}
+			conn = conntls.NetConn()
 		}
 	}
 
 	log.Println("Starting client")
-	if proxy == "" {
-		conn.Write([]byte(agentpassword))
-		//time.Sleep(time.Second * 1)
-		session, err = yamux.Server(conn, nil)
-	} else {
-
-		//log.Print(conntls)
-		newconn.Write([]byte(agentpassword))
+	conn.Write([]byte(agentpassword))
+	if proxy != "" {
 		time.Sleep(time.Second * 1)
-		session, err = yamux.Server(newconn, nil)
 	}
+	session, err := yamux.Server(conn, nil)
 	if err != nil {
 		return err
 	}

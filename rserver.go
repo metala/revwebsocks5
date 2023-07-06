@@ -9,10 +9,11 @@ import (
 	"os"
 
 	"bufio"
-	"github.com/hashicorp/yamux"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/yamux"
 )
 
 var proxytout = time.Millisecond * 1000 //timeout for wait magicbytes
@@ -22,7 +23,6 @@ func listenForAgents(tlslisten bool, address string, clients string, certificate
 	var err, erry error
 	var cer tls.Certificate
 	var session *yamux.Session
-	var sessions []*yamux.Session
 	var ln net.Listener
 
 	log.Printf("Will start listening for clients on %s", clients)
@@ -106,12 +106,10 @@ func listenForAgents(tlslisten bool, address string, clients string, certificate
 				log.Printf("[%s] Error creating client in yamux for %s: %v", agentstr, conn.RemoteAddr(), erry)
 				continue
 			}
-			sessions = append(sessions, session)
 			go listenForClients(agentstr, listenstr[0], portnum+portinc, session)
 			portinc = portinc + 1
 		}
 	}
-	return nil
 }
 
 // Catches local clients and connects to yamux

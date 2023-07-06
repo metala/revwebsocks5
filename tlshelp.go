@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -10,7 +11,6 @@ import (
 	"math/big"
 	"time"
 )
-import "crypto/tls"
 
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -35,10 +35,7 @@ func RandString(n int) string {
 // It returns the generated random bytes
 func RandBytes(n int) []byte {
 	r := make([]byte, n)
-	_, err := rand.Read(r)
-	if err != nil {
-	}
-
+	_, _ = rand.Read(r)
 	return r
 }
 
@@ -103,16 +100,6 @@ func genPair(keysize int) (cacert []byte, cakey []byte, cert []byte, certkey []b
 
 	return caBin, privBin, cert2Bin, priv2Bin
 
-}
-
-func verifyCert(cacert []byte, cert []byte) bool {
-	caBin, _ := x509.ParseCertificate(cacert)
-	cert2Bin, _ := x509.ParseCertificate(cert)
-	err3 := cert2Bin.CheckSignatureFrom(caBin)
-	if err3 != nil {
-		return false
-	}
-	return true
 }
 
 func getPEMs(cert []byte, key []byte) (pemcert []byte, pemkey []byte) {

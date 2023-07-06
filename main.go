@@ -59,15 +59,16 @@ func main() {
 		fmt.Printf("revsocks - reverse socks5 server/client %s (%s)", Version, CommitID)
 		fmt.Println("")
 		flag.PrintDefaults()
-		fmt.Println("")
-		fmt.Println("Usage (standard tcp):")
-		fmt.Println("1) Start on the client: revsocks -listen :8080 -socks 127.0.0.1:1080 -pass test")
-		fmt.Println("2) Start on the server: revsocks -connect client:8080 -pass test")
-		fmt.Println("3) Connect to 127.0.0.1:1080 on the client with any socks5 client.")
-		fmt.Println("Usage (dns):")
-		fmt.Println("1) Start on the DNS server: revsocks -dns example.com -dnslisten :53 -socks 127.0.0.1:1080")
-		fmt.Println("2) Start on the target: revsocks -dns example.com -pass <paste-generated-key>")
-		fmt.Println("3) Connect to 127.0.0.1:1080 on the DNS server with any socks5 client.")
+		fmt.Print(`
+Usage (standard tcp):
+1) Start on the client: revsocks -listen :8080 -socks 127.0.0.1:1080 -pass test
+2) Start on the server: revsocks -connect client:8080 -pass test
+3) Connect to 127.0.0.1:1080 on the client with any socks5 client.
+Usage (dns):
+1) Start on the DNS server: revsocks -dns example.com -dnslisten :53 -socks 127.0.0.1:1080
+2) Start on the target: revsocks -dns example.com -pass <paste-generated-key>
+3) Connect to 127.0.0.1:1080 on the DNS server with any socks5 client.
+`)
 	}
 
 	flag.Parse()
