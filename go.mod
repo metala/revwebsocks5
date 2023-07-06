@@ -1,4 +1,4 @@
-module github.com/kost/revsocks
+module github.com/metala/revwebsocks5
 
 go 1.19
 
@@ -7,6 +7,7 @@ require (
 	github.com/hashicorp/yamux v0.1.1
 	github.com/kost/dnstun v0.0.0-20230511164951-6e7f5656a900
 	github.com/kost/go-ntlmssp v0.0.0-20190601005913-a22bdd33b2a4
+	github.com/spf13/pflag v1.0.5
 )
 
 require (
