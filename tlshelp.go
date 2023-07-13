@@ -130,3 +130,21 @@ func getRandomTLS(keysize int) (tls.Certificate, error) {
 	tlspair, err := getTLSPair(certPem, keyPem)
 	return tlspair, err
 }
+
+func getTlsConfig(certificate string) (*tls.Config, error) {
+	var err error
+	var cer tls.Certificate
+
+	if certificate == "" {
+		log.Println("No TLS certificate. Generating random one...")
+		cer, err = getRandomTLS(2048)
+	} else {
+		cer, err = tls.LoadX509KeyPair(certificate+".crt", certificate+".key")
+	}
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	config := &tls.Config{Certificates: []tls.Certificate{cer}}
+	return config, nil
+}
