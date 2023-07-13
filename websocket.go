@@ -139,7 +139,7 @@ func connectToServer(connect *url.URL, proxyUrls []*url.URL, verify bool) error 
 		Location: connect,
 		Origin:   connect,
 		Version:  13,
-		Header:   http.Header{"Authorization": []string{agentpassword}},
+		Header:   http.Header{"Authorization": []string{agentPassword}},
 	}
 	wsconn, err := websocket.NewClient(&wsConf, conn)
 	if err != nil {

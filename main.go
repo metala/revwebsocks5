@@ -12,14 +12,11 @@ import (
 
 	"time"
 
-	"strconv"
-
 	flag "github.com/spf13/pflag"
 )
 
-var agentpassword string
-var socksdebug bool
-var proxytimeout = time.Millisecond * 1000 //timeout for wait magicbytes
+var agentPassword string
+var userAgent string
 
 func main() {
 	var (
@@ -29,8 +26,6 @@ func main() {
 		socksPort      uint16
 		connect        string
 		proxies        []string
-		proxyTimeout   string
-		userAgent      string
 		quiet          bool
 		reconnectLimit int
 		reconnectDelay int
@@ -38,13 +33,12 @@ func main() {
 		tlsVerifyPeer  bool
 		version        bool
 	)
-	flag.StringVarP(&listen, "listen", "", "", "listen port for receiver address:port")
+	flag.StringVarP(&listen, "listen", "l", "", "listen port for receiver address:port")
 	flag.StringVarP(&socksBind, "socks-bind", "", "127.0.0.1", "socks5 bind address")
 	flag.Uint16VarP(&socksPort, "socks-port", "", 1080, "socks5 starting port")
-	flag.StringVarP(&connect, "connect", "", "", "connect address:port")
+	flag.StringVarP(&connect, "connect", "c", "", "connect address:port")
 	flag.StringSliceVarP(&proxies, "proxy", "", []string{}, "proxy address:port")
-	flag.StringVarP(&proxyTimeout, "proxy-timeout", "", "", "proxy response timeout (ms)")
-	flag.StringVarP(&agentpassword, "password", "P", "", "Connect password")
+	flag.StringVarP(&agentPassword, "password", "P", "", "Connect password")
 	flag.StringVarP(&userAgent, "user-agent", "", "", "User-Agent")
 	flag.IntVarP(&reconnectLimit, "reconnect-limit", "", 3, "reconnection limit")
 	flag.IntVarP(&reconnectDelay, "reconnect-delay", "", 30, "reconnection delay")
@@ -76,29 +70,20 @@ Usage (dns):
 		log.SetOutput(ioutil.Discard)
 	}
 
-	if debug {
-		socksdebug = true
-	}
 	if version {
-		fmt.Printf("revsocks - reverse socks5 server/client %s (%s)", Version, CommitID)
+		fmt.Printf("%s - reverse SOCKS5 server/client over ws %s (%s)", os.Args[0], Version, CommitID)
 		os.Exit(0)
 	}
 
 	if listen != "" {
 		log.Println("Starting to listen for clients")
-		if proxyTimeout != "" {
-			opttimeout, _ := strconv.Atoi(proxyTimeout)
-			proxytimeout = time.Millisecond * time.Duration(opttimeout)
-		} else {
-			proxytimeout = time.Millisecond * 1000
-		}
 
-		if agentpassword == "" {
-			agentpassword = RandString(64)
-			log.Println("No password specified. Generated password is " + agentpassword)
+		if agentPassword == "" {
+			agentPassword = RandString(64)
+			log.Println("No password specified. Generated password is " + agentPassword)
 		}
 		srv := server{
-			agentpassword: agentpassword,
+			agentpassword: agentPassword,
 			socksBind:     socksBind,
 			socksPort:     socksPort,
 		}
@@ -129,8 +114,8 @@ Usage (dns):
 			log.Fatal(err)
 		}
 
-		if agentpassword == "" {
-			agentpassword = "RocksDefaultRequestRocksDefaultRequestRocksDefaultRequestRocks!!"
+		if agentPassword == "" {
+			agentPassword = "RocksDefaultRequestRocksDefaultRequestRocksDefaultRequestRocks!!"
 		}
 		if userAgent == "" {
 			userAgent = "Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko"
