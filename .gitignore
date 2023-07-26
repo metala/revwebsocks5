@@ -24,3 +24,5 @@ _testmain.go
 *.prof
 
 /revwebsocks5
+/revwebsocks5.exe
+/tls

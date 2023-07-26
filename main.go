@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,6 +11,7 @@ import (
 
 	"time"
 
+	tls "github.com/refraction-networking/utls"
 	flag "github.com/spf13/pflag"
 )
 
@@ -29,8 +29,7 @@ func main() {
 		quiet          bool
 		reconnectLimit int
 		reconnectDelay int
-		debug          bool
-		tlsVerifyPeer  bool
+		tlsVerify      bool
 		version        bool
 	)
 	flag.StringVarP(&listen, "listen", "l", "", "listen port for receiver address:port")
@@ -42,8 +41,8 @@ func main() {
 	flag.StringVarP(&userAgent, "user-agent", "", "", "User-Agent")
 	flag.IntVarP(&reconnectLimit, "reconnect-limit", "", 3, "reconnection limit")
 	flag.IntVarP(&reconnectDelay, "reconnect-delay", "", 30, "reconnection delay")
-	flag.StringVarP(&tlsCert, "cert", "", "", "certificate file")
-	flag.BoolVarP(&tlsVerifyPeer, "verify-peer", "", false, "verify TLS peer")
+	flag.StringVarP(&tlsCert, "tls-cert", "", "", "certificate file")
+	flag.BoolVarP(&tlsVerify, "tls-verify", "", false, "verify TLS server")
 	flag.BoolVarP(&quiet, "quiet", "q", false, "Be quiet")
 	flag.BoolVarP(&debug, "debug", "", false, "display debug info")
 	flag.BoolVarP(&version, "version", "", false, "show program version")
@@ -92,18 +91,35 @@ Usage (dns):
 			Addr:         listen,
 			ReadTimeout:  30 * time.Second,
 			WriteTimeout: 30 * time.Second,
+			ErrorLog:     log.Default(),
+			ConnState: func(c net.Conn, cs http.ConnState) {
+				if !debug {
+					return
+				}
+				log.Printf("[%s] state: %s", c.RemoteAddr(), cs)
+			},
 		}
-		tlsCfg, err := getTlsConfig(tlsCert)
+		tlsCfg, err := getTlsPairConfig(tlsCert)
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Printf("Listening for agents on %s using TLS", listen)
+		f, err := os.OpenFile("/tmp/keys", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+		tlsCfg.KeyLogWriter = f
+		tlsCfg.MinVersion = tls.VersionTLS12
+		tlsCfg.MaxVersion = tls.VersionTLS12
+		tlsCfg.SessionTicketsDisabled = true
+
+		// log.Printf("Listening for agents on %s using TLS", listen)
 		ln, err := net.Listen("tcp", listen)
 		if err != nil {
 			log.Fatal(err)
 		}
 		tlsLn := tls.NewListener(ln, tlsCfg)
-		if err = wsSrv.Serve(tlsLn); err != nil {
+		if err := wsSrv.Serve(tlsLn); err != nil {
 			panic("ListenAndServe: " + err.Error())
 		}
 	}
@@ -118,7 +134,7 @@ Usage (dns):
 			agentPassword = "RocksDefaultRequestRocksDefaultRequestRocksDefaultRequestRocks!!"
 		}
 		if userAgent == "" {
-			userAgent = "Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko"
+			userAgent = "curl/8.1.2"
 		}
 		proxyURLs := make([]*url.URL, 0)
 		for _, pu := range proxies {
@@ -131,7 +147,7 @@ Usage (dns):
 
 		for i := 0; i <= reconnectLimit; i++ {
 			log.Printf("Connecting to the far end. Try %d of %d", i, reconnectLimit)
-			err := connectToServer(connectUrl, proxyURLs, tlsVerifyPeer)
+			err := connectToServer(connectUrl, proxyURLs, tlsCert, tlsVerify)
 			if err != nil {
 				log.Printf("Failed to connect: %s", err)
 			}

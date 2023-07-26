@@ -3,13 +3,16 @@ package main
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"log"
 	"math/big"
+	"os"
 	"time"
+
+	tls "github.com/refraction-networking/utls"
 )
 
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -131,15 +134,39 @@ func getRandomTLS(keysize int) (tls.Certificate, error) {
 	return tlspair, err
 }
 
-func getTlsConfig(certificate string) (*tls.Config, error) {
+func getTlsCertConfig(basename string) (*tls.Config, error) {
+	var err error
+
+	data, err := os.ReadFile(basename + ".crt")
+	if err != nil {
+		return nil, err
+	}
+
+	certs := x509.NewCertPool()
+	for block, rest := pem.Decode(data); block != nil; block, rest = pem.Decode(rest) {
+		switch block.Type {
+		case "CERTIFICATE":
+			cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return nil, err
+			}
+			certs.AddCert(cert)
+		default:
+			return nil, errors.New("unknown block type")
+		}
+	}
+	return &tls.Config{RootCAs: certs}, err
+}
+
+func getTlsPairConfig(basename string) (*tls.Config, error) {
 	var err error
 	var cer tls.Certificate
 
-	if certificate == "" {
+	if basename == "" {
 		log.Println("No TLS certificate. Generating random one...")
 		cer, err = getRandomTLS(2048)
 	} else {
-		cer, err = tls.LoadX509KeyPair(certificate+".crt", certificate+".key")
+		cer, err = tls.LoadX509KeyPair(basename+".crt", basename+".key")
 	}
 	if err != nil {
 		log.Println(err)
