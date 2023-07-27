@@ -26,7 +26,7 @@ var (
 // keygenCmd represents the keygen command
 var keygenCmd = &cobra.Command{
 	Use:   "keygen",
-	Short: "generates a key and certificate",
+	Short: "Generate a TLS key and certificate",
 	Long:  `The utility creates the required TLS key and certificate for the server (and client).`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if quiet {
