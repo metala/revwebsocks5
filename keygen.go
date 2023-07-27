@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/big"
+	"net"
 	"os"
 	"time"
 
@@ -17,8 +18,10 @@ import (
 )
 
 var (
-	keyOut  string
-	certOut string
+	keyOut      string
+	certOut     string
+	dnsNames    []string
+	ipAddresses []net.IP
 )
 
 // keygenCmd represents the keygen command
@@ -61,6 +64,8 @@ func init() {
 
 	keygenCmd.Flags().StringVarP(&keyOut, "key-out", "k", "./tls/server.key", "the key output filename")
 	keygenCmd.Flags().StringVarP(&certOut, "cert-out", "c", "./tls/server.crt", "the certificate output filename")
+	keygenCmd.Flags().StringSliceVarP(&dnsNames, "dns-name", "D", []string{"localhost"}, "add dns name")
+	keygenCmd.Flags().IPSliceVarP(&ipAddresses, "ip-addr", "I", []net.IP{net.IPv4(127, 0, 0, 1)}, "add ip address")
 }
 
 func getPEMs(cert []byte, key []byte) (pemcert []byte, pemkey []byte) {
@@ -102,6 +107,9 @@ func genKeyCert() (key []byte, cert []byte) {
 		IsCA:                  true,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+
+		IPAddresses: ipAddresses,
+		DNSNames:    dnsNames,
 	}
 
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
