@@ -18,26 +18,24 @@ func init() {
 }
 
 type httpProxy struct {
-	host      string
-	haveAuth  bool
-	username  string
-	password  string
-	forward   proxy.Dialer
-	proxyName string
+	host     string
+	haveAuth bool
+	username string
+	password string
+	forward  proxy.Dialer
 }
 
 func newHTTPProxy(uri *url.URL, forward proxy.Dialer) (proxy.Dialer, error) {
-	s := new(httpProxy)
-	s.host = uri.Host
-	s.forward = forward
+	p := new(httpProxy)
+	p.host = uri.Host
+	p.forward = forward
 	if uri.User != nil {
-		s.haveAuth = true
-		s.username = uri.User.Username()
-		s.password, _ = uri.User.Password()
+		p.haveAuth = true
+		p.username = uri.User.Username()
+		p.password, _ = uri.User.Password()
 	}
-	s.proxyName = uri.Host
 
-	return s, nil
+	return p, nil
 }
 
 func (p *httpProxy) Dial(network, addr string) (net.Conn, error) {
@@ -71,7 +69,7 @@ func (p *httpProxy) Dial(network, addr string) (net.Conn, error) {
 
 	var logger *log.Logger
 	if debug {
-		logger = log.New(os.Stderr, fmt.Sprintf("[proxy %s] ", p.proxyName), log.LstdFlags)
+		logger = log.New(os.Stderr, fmt.Sprintf("[proxy %s] ", p.host), log.LstdFlags)
 		req.Write(logger.Writer())
 	}
 	err = req.Write(conn)

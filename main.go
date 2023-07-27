@@ -30,7 +30,6 @@ func main() {
 		reconnectLimit int
 		reconnectDelay int
 		tlsVerify      bool
-		version        bool
 	)
 	flag.StringVarP(&listen, "listen", "l", "", "listen port for receiver address:port")
 	flag.StringVarP(&socksBind, "socks-bind", "", "127.0.0.1", "socks5 bind address")
@@ -44,22 +43,17 @@ func main() {
 	flag.StringVarP(&tlsCert, "tls-cert", "", "", "certificate file")
 	flag.BoolVarP(&tlsVerify, "tls-verify", "", false, "verify TLS server")
 	flag.BoolVarP(&quiet, "quiet", "q", false, "Be quiet")
-	flag.BoolVarP(&debug, "debug", "", false, "display debug info")
-	flag.BoolVarP(&version, "version", "", false, "show program version")
+	flag.BoolVarP(&debug, "debug", "d", false, "display debug info")
 
 	flag.Usage = func() {
-		fmt.Printf("revsocks - reverse socks5 server/client %s (%s)", Version, CommitID)
+		fmt.Println("revwebsocks5 - reverse SOCKS5 tunnel over WebSocket")
 		fmt.Println("")
 		flag.PrintDefaults()
 		fmt.Print(`
-Usage (standard tcp):
-1) Start on the client: revsocks -listen :8080 -socks 127.0.0.1:1080 -pass test
-2) Start on the server: revsocks -connect client:8080 -pass test
-3) Connect to 127.0.0.1:1080 on the client with any socks5 client.
-Usage (dns):
-1) Start on the DNS server: revsocks -dns example.com -dnslisten :53 -socks 127.0.0.1:1080
-2) Start on the target: revsocks -dns example.com -pass <paste-generated-key>
-3) Connect to 127.0.0.1:1080 on the DNS server with any socks5 client.
+Usage:
+1) Start on host: revwebsocks5 -l :8443 -P SuperSecretPassword
+2) Start on client: revwebsocks5 -c clientIP:8443 -P SuperSecretPassword
+3) Connect to 127.0.0.1:1080 on the host with any SOCKS5 client.
 `)
 	}
 
@@ -69,14 +63,7 @@ Usage (dns):
 		log.SetOutput(ioutil.Discard)
 	}
 
-	if version {
-		fmt.Printf("%s - reverse SOCKS5 server/client over ws %s (%s)", os.Args[0], Version, CommitID)
-		os.Exit(0)
-	}
-
 	if listen != "" {
-		log.Println("Starting to listen for clients")
-
 		if agentPassword == "" {
 			agentPassword = RandString(64)
 			log.Println("No password specified. Generated password is " + agentPassword)
@@ -103,17 +90,8 @@ Usage (dns):
 		if err != nil {
 			log.Fatal(err)
 		}
-		f, err := os.OpenFile("/tmp/keys", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-		if err != nil {
-			panic(err)
-		}
-		defer f.Close()
-		tlsCfg.KeyLogWriter = f
-		tlsCfg.MinVersion = tls.VersionTLS12
-		tlsCfg.MaxVersion = tls.VersionTLS12
-		tlsCfg.SessionTicketsDisabled = true
 
-		// log.Printf("Listening for agents on %s using TLS", listen)
+		log.Printf("Listening for agents on %s using TLS", listen)
 		ln, err := net.Listen("tcp", listen)
 		if err != nil {
 			log.Fatal(err)
