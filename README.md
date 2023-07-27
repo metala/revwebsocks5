@@ -8,12 +8,6 @@ Forked from <https://github.com/kost/revsocks>
 When behind a (L7 inspecting) firewall and/or HTTP proxy and you are unable to set up a VPN (e.g. Wireguard) tunnel.
 
 # Usage
-## Example
-    1) Start on host: revwebsocks5 server -l :8443 -P SuperSecretPassword
-    2) Start on client: revwebsocks5 client -c clientIP:8443 -P SuperSecretPassword
-    3) Connect to 127.0.0.1:1080 on the host with any SOCKS5 client.
-
-## Command-line options
     Establishes a reverse tunnel over WebSocket and TLS
 
     Usage:
