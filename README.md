@@ -11,29 +11,32 @@ When behind a (L7 inspecting) firewall and/or HTTP proxy and you are unable to s
     Establishes a reverse tunnel over WebSocket and TLS
 
     Usage:
-    revwebsocks5 [command]
+      revwebsocks5 [command]
 
     Examples:
-
-    0) Generate key and certificate: revwebsocks5 keygen --key-out ./tls/server.key --cert-out ./tls/server.crt --dns-name localhost --ip-addr 127.0.0.1
-    1) Start on host: revwebsocks5 server -l :8443 -P SuperSecretPassword --tls-key ./tls/server.key --tls-cert ./tls/server.crt
-    2) Start on client: revwebsocks5 client -c https://localhost:8443 -P SuperSecretPassword --tls-cert ./tls/server.crt
+    0) Generate key and certificate:
+        revwebsocks5 keygen --key-out ./tls/server.key --cert-out ./tls/server.crt --dns-name localhost --ip-addr 127.0.0.1
+    1) Start on host:
+        revwebsocks5 server -l :8443 -P SuperSecretPassword --tls-key ./tls/server.key --tls-cert ./tls/server.crt
+    2) Start on client:
+        revwebsocks5 client -c https://localhost:8443 -P SuperSecretPassword --tls-cert ./tls/server.crt
     3) Connect to 127.0.0.1:1080 on the host with any SOCKS5 client.
     4) Enjoy.
 
     Available Commands:
-    client      Client connects to server
-    completion  Generate the autocompletion script for the specified shell
-    help        Help about any command
-    keygen      generates a key and certificate
-    server      Start a HTTPS server for client agents
+      client      Client connects to server
+      completion  Generate the autocompletion script for the specified shell
+      help        Help about any command
+      keygen      generates a key and certificate
+      server      Start a HTTPS server for client agents
 
     Flags:
-    -d, --debug   display debug info
-    -h, --help    help for revwebsocks5
-    -q, --quiet   Be quiet
+      -d, --debug   display debug info
+      -h, --help    help for revwebsocks5
+      -q, --quiet   Be quiet
 
     Use "revwebsocks5 [command] --help" for more information about a command.
+
 
 # Design
 ## Overview
