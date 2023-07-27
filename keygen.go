@@ -42,7 +42,7 @@ var keygenCmd = &cobra.Command{
 
 		key, cert := genKeyCert()
 		certPem, keyPem := getPEMs(cert, key)
-		if err := os.WriteFile(keyOut, keyPem, 0o0644); err != nil {
+		if err := os.WriteFile(keyOut, keyPem, 0o0600); err != nil {
 			log.Fatal(err)
 		}
 		log.Printf("wrote key to: %s", keyOut)
