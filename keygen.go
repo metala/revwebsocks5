@@ -13,7 +13,6 @@ import (
 	"os"
 	"time"
 
-	tls "github.com/refraction-networking/utls"
 	"github.com/spf13/cobra"
 )
 
@@ -43,16 +42,11 @@ var keygenCmd = &cobra.Command{
 
 		key, cert := genKeyCert()
 		certPem, keyPem := getPEMs(cert, key)
-		_, err := getTLSPair(certPem, keyPem)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if err = os.WriteFile(keyOut, keyPem, 0o0644); err != nil {
+		if err := os.WriteFile(keyOut, keyPem, 0o0644); err != nil {
 			log.Fatal(err)
 		}
 		log.Printf("wrote key to: %s", keyOut)
-		if err = os.WriteFile(certOut, certPem, 0o0644); err != nil {
+		if err := os.WriteFile(certOut, certPem, 0o0644); err != nil {
 			log.Fatal(err)
 		}
 		log.Printf("wrote certificate to: %s", certOut)
@@ -80,14 +74,6 @@ func getPEMs(cert []byte, key []byte) (pemcert []byte, pemkey []byte) {
 	})
 
 	return certPem, keyPem
-}
-
-func getTLSPair(certPem []byte, keyPem []byte) (tls.Certificate, error) {
-	tlspair, errt := tls.X509KeyPair(certPem, keyPem)
-	if errt != nil {
-		return tlspair, errt
-	}
-	return tlspair, nil
 }
 
 func genKeyCert() (key []byte, cert []byte) {
