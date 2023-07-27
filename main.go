@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -39,14 +40,23 @@ var rootCmd = &cobra.Command{
 4) Enjoy.`,
 }
 
-func main() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
+var mooCmd = &cobra.Command{
+	Use:    "moo",
+	Hidden: true,
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("If you connect into the interwebz, the interwebz connects back.")
+	},
 }
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Be quiet")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "display debug info")
+	rootCmd.AddCommand(mooCmd)
+}
+
+func main() {
+	err := rootCmd.Execute()
+	if err != nil {
+		os.Exit(1)
+	}
 }
