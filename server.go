@@ -21,13 +21,9 @@ import (
 // serverCmd represents the server command
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Start a HTTPS server for client agents",
+	Long: `The server commands stars a WebSocket HTTPS service that waits for 
+client agents to establish a reverse tunnel.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if quiet {
 			log.SetOutput(ioutil.Discard)

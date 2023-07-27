@@ -31,12 +31,13 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "revwebsocks5",
 	Short: "reverse SOCKS5 tunnel over WebSocket",
-	Long: `Establishes a reverse tunnel over WebSocket and TLS
-
-Usage:
-1) Start on host: revwebsocks5 server -l :8443 -P SuperSecretPassword
-2) Start on client: revwebsocks5 client -c clientIP:8443 -P SuperSecretPassword
-3) Connect to 127.0.0.1:1080 on the host with any SOCKS5 client.`,
+	Long:  "Establishes a reverse tunnel over WebSocket and TLS",
+	Example: `
+0) Generate key and certificate: revwebsocks5 keygen --key-out ./tls/server.key --cert-out ./tls/server.crt --dns-name localhost --ip-addr 127.0.0.1
+1) Start on host: revwebsocks5 server -l :8443 -P SuperSecretPassword --tls-key ./tls/server.key --tls-cert ./tls/server.crt
+2) Start on client: revwebsocks5 client -c https://localhost:8443 -P SuperSecretPassword --tls-cert ./tls/server.crt
+3) Connect to 127.0.0.1:1080 on the host with any SOCKS5 client.
+4) Enjoy.`,
 }
 
 func main() {

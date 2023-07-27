@@ -9,26 +9,37 @@ When behind a (L7 inspecting) firewall and/or HTTP proxy and you are unable to s
 
 # Usage
 ## Example
-    1) Start on host: revwebsocks5 -l :8443 -P SuperSecretPassword
-    2) Start on client: revwebsocks5 -c clientIP:8443 -P SuperSecretPassword
+    1) Start on host: revwebsocks5 server -l :8443 -P SuperSecretPassword
+    2) Start on client: revwebsocks5 client -c clientIP:8443 -P SuperSecretPassword
     3) Connect to 127.0.0.1:1080 on the host with any SOCKS5 client.
 
 ## Command-line options
-    revwebsocks5 - reverse SOCKS5 tunnel over WebSocket
-    
-      -c, --connect string        connect address:port
-      -d, --debug                 display debug info
-      -l, --listen string         listen port for receiver address:port
-      -P, --password string       Connect password
-          --proxy strings         proxy address:port
-      -q, --quiet                 Be quiet
-          --reconnect-delay int   reconnection delay (default 30)
-          --reconnect-limit int   reconnection limit (default 3)
-          --socks-bind string     socks5 bind address (default "127.0.0.1")
-          --socks-port uint16     socks5 starting port (default 1080)
-          --tls-cert string       certificate file
-          --tls-verify            verify TLS server
-          --user-agent string     User-Agent
+    Establishes a reverse tunnel over WebSocket and TLS
+
+    Usage:
+    revwebsocks5 [command]
+
+    Examples:
+
+    0) Generate key and certificate: revwebsocks5 keygen --key-out ./tls/server.key --cert-out ./tls/server.crt --dns-name localhost --ip-addr 127.0.0.1
+    1) Start on host: revwebsocks5 server -l :8443 -P SuperSecretPassword --tls-key ./tls/server.key --tls-cert ./tls/server.crt
+    2) Start on client: revwebsocks5 client -c https://localhost:8443 -P SuperSecretPassword --tls-cert ./tls/server.crt
+    3) Connect to 127.0.0.1:1080 on the host with any SOCKS5 client.
+    4) Enjoy.
+
+    Available Commands:
+    client      Client connects to server
+    completion  Generate the autocompletion script for the specified shell
+    help        Help about any command
+    keygen      generates a key and certificate
+    server      Start a HTTPS server for client agents
+
+    Flags:
+    -d, --debug   display debug info
+    -h, --help    help for revwebsocks5
+    -q, --quiet   Be quiet
+
+    Use "revwebsocks5 [command] --help" for more information about a command.
 
 # Design
 ## Overview
@@ -46,7 +57,7 @@ The client established a connection multiplexing (yamux) over WebSocket over HTT
 * `github.com/armon/go-socks5` - SOCKS5 server handling the connections
 * `github.com/hashicorp/yamux` - connection multiplexer
 * `github.com/refraction-networking/utls` - custom `ClientHello` and prevents TLS fingerprinting
-* `github.com/spf13/pflag` - POSIX cli options
+* `github.com/spf13/cobra` - commands and POSIX cli options
 * `golang.org/x/net` - proxy and websocket support
 
 # Disclaimer
