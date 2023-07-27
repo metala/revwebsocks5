@@ -1,8 +1,13 @@
+/*
+Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+*/
 package main
 
 import (
-	"fmt"
+	"crypto/x509"
+	"errors"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -13,99 +18,74 @@ import (
 	socks5 "github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
 	tls "github.com/refraction-networking/utls"
+	"github.com/spf13/cobra"
 	"golang.org/x/net/proxy"
 	"golang.org/x/net/websocket"
 )
 
-type server struct {
-	agentpassword string
-	socksBind     string
-	socksPort     uint16
-}
-
-func (s *server) agentHandler(conn *websocket.Conn) {
-	agentstr := conn.RemoteAddr().String()
-	log.Printf("[%s] Got an agent from %v: ", agentstr, conn.RemoteAddr())
-	conn.SetReadDeadline(time.Now().Add(100 * time.Hour))
-
-	//Add connection to yamux
-	session, err := yamux.Client(conn, nil)
-	if err != nil {
-		log.Printf("[%s] Error creating client in yamux for %s: %v", agentstr, conn.RemoteAddr(), err)
-		return
-	}
-	listenForClients(agentstr, s.socksBind, s.socksPort, session)
-}
-
-func (s *server) WsHandler() http.HandlerFunc {
-	wsHandler := websocket.Handler(s.agentHandler)
-	return func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("[%s] New agent connection.", r.RemoteAddr)
-		if r.Header.Get("authorization") != s.agentpassword {
-			log.Printf("[%s] Error: Invalid password", r.RemoteAddr)
-			w.WriteHeader(http.StatusForbidden)
-			return
+// clientCmd represents the client command
+var clientCmd = &cobra.Command{
+	Use:   "client",
+	Short: "Client connects to server",
+	Long:  `The client connects to the server and acts as an exit node for the tunnel.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if quiet {
+			log.SetOutput(ioutil.Discard)
 		}
-		wsHandler.ServeHTTP(w, r)
-	}
-}
-
-// Catches local clients and connects to yamux
-func listenForClients(agentstr string, bind string, port uint16, session *yamux.Session) error {
-	var ln net.Listener
-	var address string
-	var err error
-	for {
-		address = fmt.Sprintf("%s:%d", bind, port)
-		log.Printf("[%s] Waiting for SOCKS5 clients on %s", agentstr, address)
-		ln, err = net.Listen("tcp", address)
+		connectUrl, err := url.Parse(connect)
 		if err != nil {
-			log.Printf("[%s] Error listening on %s: %v", agentstr, address, err)
-			port = port + 1
-		} else {
-			break
+			log.Fatal(err)
 		}
-	}
-	go func() {
-		<-session.CloseChan()
-		ln.Close()
-	}()
-	for {
-		conn, err := ln.Accept()
+		if password == "" {
+			log.Fatal("missing password")
+		}
+		if userAgent == "" {
+			userAgent = "curl/8.1.2"
+		}
+		proxyURLs := make([]*url.URL, 0)
+		for _, pu := range proxies {
+			u, err := url.Parse(pu)
+			if err != nil {
+				log.Fatalf("Invalid proxy '%s': %s", pu, err)
+			}
+			proxyURLs = append(proxyURLs, u)
+		}
+		certPool, err := loadCertPool(tlsCert)
 		if err != nil {
-			log.Printf("[%s] Error accepting on %s: %v", agentstr, address, err)
-			return err
+			log.Fatal(err)
 		}
-		if session == nil {
-			log.Printf("[%s] Session on %s is nil", agentstr, address)
-			conn.Close()
-			continue
-		}
-		log.Printf("[%s] Got client. Opening stream for %s", agentstr, conn.RemoteAddr())
-
-		stream, err := session.Open()
-		if err != nil {
-			log.Printf("[%s] Error opening stream for %s: %v", agentstr, conn.RemoteAddr(), err)
-			return err
+		for i := 0; i <= reconnectLimit; i++ {
+			log.Printf("Connecting to the server. Attempt %d of %d", i, reconnectLimit)
+			err := clientConnect(connectUrl, proxyURLs, certPool, tlsSkipVerify)
+			if err != nil {
+				log.Printf("Failed to connect: %s", err)
+			}
+			log.Printf("Sleeping for %d sec...", reconnectDelay)
+			tsleep := time.Second * time.Duration(reconnectDelay)
+			time.Sleep(tsleep)
 		}
 
-		// connect both of conn and stream
-		log.Printf("[%s] Forwarding connection for %s", agentstr, conn.RemoteAddr())
-		go func() {
-			io.Copy(conn, stream)
-			conn.Close()
-			log.Printf("[%s] Done forwarding conn to stream for %s", agentstr, conn.RemoteAddr())
-		}()
-		go func() {
-			io.Copy(stream, conn)
-			stream.Close()
-			log.Printf("[%s] Done forwarding stream to conn for %s", agentstr, conn.RemoteAddr())
-		}()
-	}
+		log.Fatal("Ending...")
+	},
 }
 
-func connectToServer(connect *url.URL, proxyUrls []*url.URL, tlsCert string, verify bool) error {
-	server, err := socks5.New(&socks5.Config{})
+func init() {
+	rootCmd.AddCommand(clientCmd)
+
+	clientCmd.Flags().StringVarP(&connect, "connect", "c", "", "connect address:port")
+	clientCmd.Flags().StringSliceVarP(&proxies, "proxy", "", []string{}, "proxy address:port")
+	clientCmd.Flags().StringVarP(&password, "password", "P", "", "Connect password")
+	clientCmd.Flags().StringVarP(&userAgent, "user-agent", "", "", "User-Agent")
+	clientCmd.Flags().IntVarP(&reconnectLimit, "reconnect-limit", "", 3, "reconnection limit")
+	clientCmd.Flags().IntVarP(&reconnectDelay, "reconnect-delay", "", 30, "reconnection delay")
+	clientCmd.Flags().StringVarP(&tlsCert, "tls-cert", "", "", "certificate file (defaults to system certificates)")
+	clientCmd.Flags().BoolVarP(&tlsSkipVerify, "tls-skip-verify", "", false, "verify TLS server")
+
+	clientCmd.MarkFlagsRequiredTogether("connect", "password")
+}
+
+func clientConnect(connect *url.URL, proxyUrls []*url.URL, certPool *x509.CertPool, skipVerify bool) error {
+	socksHandler, err := socks5.New(&socks5.Config{})
 	if err != nil {
 		return err
 	}
@@ -121,7 +101,7 @@ func connectToServer(connect *url.URL, proxyUrls []*url.URL, tlsCert string, ver
 		}
 	}
 
-	log.Println("Connecting...")
+	log.Println("Dialling...")
 	var conn net.Conn
 	if conn, err = dailer.Dial("tcp", connect.Host); err != nil {
 		return err
@@ -132,15 +112,14 @@ func connectToServer(connect *url.URL, proxyUrls []*url.URL, tlsCert string, ver
 	}
 
 	log.Println("Establishing TLS connection...")
-	tlsCfg, err := getTlsCertConfig(tlsCert)
-	if err != nil {
-		return err
+	tlsCfg := &tls.Config{
+		MinVersion:         tls.VersionTLS12,
+		MaxVersion:         tls.VersionTLS13,
+		RootCAs:            certPool,
+		InsecureSkipVerify: skipVerify,
+		ServerName:         connect.Hostname(),
+		NextProtos:         []string{"h2", "http/1.1"},
 	}
-	tlsCfg.InsecureSkipVerify = !verify
-	tlsCfg.MinVersion = tls.VersionTLS12
-	tlsCfg.MaxVersion = tls.VersionTLS13
-	tlsCfg.ServerName = connect.Hostname()
-	tlsCfg.NextProtos = []string{"h2", "http/1.1"}
 	conntls := tls.UClient(conn, tlsCfg, tls.HelloCustom)
 	conntls.ApplyPreset(&tls.ClientHelloSpec{
 		TLSVersMin: tls.VersionTLS12,
@@ -200,7 +179,7 @@ func connectToServer(connect *url.URL, proxyUrls []*url.URL, tlsCert string, ver
 		Version:  13,
 		Header: http.Header{
 			"User-Agent":    []string{userAgent},
-			"Authorization": []string{agentPassword},
+			"Authorization": []string{password},
 			"Connection":    []string{"Upgrade"},
 		},
 	}
@@ -222,10 +201,27 @@ func connectToServer(connect *url.URL, proxyUrls []*url.URL, tlsCert string, ver
 		}
 		log.Println("Serving new SOCKS5 connection...")
 		go func() {
-			err = server.ServeConn(stream)
+			err = socksHandler.ServeConn(stream)
 			if err != nil {
 				log.Println(err)
 			}
 		}()
 	}
+}
+
+func loadCertPool(filename string) (*x509.CertPool, error) {
+	if filename == "" {
+		return x509.SystemCertPool()
+	}
+
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	certs := x509.NewCertPool()
+	ok := certs.AppendCertsFromPEM(data)
+	if !ok {
+		return nil, errors.New("failed to parse RootCAs")
+	}
+	return certs, nil
 }

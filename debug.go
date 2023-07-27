@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-var debug bool
-
 type rwcSpy struct {
 	io.ReadWriteCloser
 
