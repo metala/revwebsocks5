@@ -137,14 +137,14 @@ func connectToServer(connect *url.URL, proxyUrls []*url.URL, tlsCert string, ver
 		return err
 	}
 	tlsCfg.InsecureSkipVerify = !verify
-	tlsCfg.MinVersion = tls.VersionTLS11
-	tlsCfg.MaxVersion = tls.VersionTLS12
+	tlsCfg.MinVersion = tls.VersionTLS12
+	tlsCfg.MaxVersion = tls.VersionTLS13
 	tlsCfg.ServerName = connect.Hostname()
 	tlsCfg.NextProtos = []string{"h2", "http/1.1"}
 	conntls := tls.UClient(conn, tlsCfg, tls.HelloCustom)
 	conntls.ApplyPreset(&tls.ClientHelloSpec{
-		TLSVersMin: tls.VersionTLS11,
-		TLSVersMax: tls.VersionTLS12,
+		TLSVersMin: tls.VersionTLS12,
+		TLSVersMax: tls.VersionTLS13,
 		CipherSuites: []uint16{
 			0x1302, 0x1303, 0x1301, 0xc02c, 0xc030, 0x009f, 0xcca9, 0xcca8,
 			0xccaa, 0xc02b, 0xc02f, 0x009e, 0xc024, 0xc028, 0x006b, 0xc023,

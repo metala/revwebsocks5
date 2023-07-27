@@ -90,6 +90,8 @@ Usage:
 		if err != nil {
 			log.Fatal(err)
 		}
+		tlsCfg.MinVersion = tls.VersionTLS12
+		tlsCfg.MaxVersion = tls.VersionTLS13
 
 		log.Printf("Listening for agents on %s using TLS", listen)
 		ln, err := net.Listen("tcp", listen)

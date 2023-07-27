@@ -1,6 +1,6 @@
 # revwebsocks5
 
-Reverse SOCKS5 tunneler over WebSocket with SSL/TLS and proxy support  
+Reverse SOCKS5 tunnel over WebSocket with TLS and proxy support  
 Forked from <https://github.com/kost/revsocks>
 
 ## Use Case
