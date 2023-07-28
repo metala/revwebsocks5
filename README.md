@@ -6,6 +6,14 @@ Reverse SOCKS5 tunnel over TLS-secured WebSocket with proxy support
 
 When behind a (L7 inspecting) firewall and/or HTTP proxy and you are unable to set up a VPN (e.g. Wireguard) tunnel.
 
+## Features
+
+* Secure by default, TLS connection is mandatory, a key and a certificate is required.
+* Supports the generation of self-signed server certificate through the `keygen` subcommand.
+* Supports a chain of SOCKS5 or HTTP proxies w/ Basic Auth.
+* Supports debugging / tracing the connection data on the client side.
+* Server and client are separated in subcommands for convenience.
+
 # Usage
     Establishes a reverse tunnel over WebSocket and TLS
 
