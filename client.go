@@ -4,7 +4,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -26,15 +25,9 @@ var clientCmd = &cobra.Command{
 	Short: "Client connects to server",
 	Long:  `The client connects to the server and acts as an exit node for the tunnel.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if quiet {
-			log.SetOutput(ioutil.Discard)
-		}
 		connectUrl, err := url.Parse(connect)
 		if err != nil {
 			log.Fatal(err)
-		}
-		if password == "" {
-			log.Fatal("missing password")
 		}
 		if userAgent == "" {
 			userAgent = "curl/8.1.2"

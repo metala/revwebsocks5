@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"net"
@@ -29,10 +28,6 @@ var keygenCmd = &cobra.Command{
 	Short: "Generate a TLS key and certificate",
 	Long:  `The utility creates the required TLS key and certificate for the server (and client).`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if quiet {
-			log.SetOutput(ioutil.Discard)
-		}
-
 		if _, err := os.Stat(keyOut); err == nil {
 			log.Fatalf("key file '%s' exists", keyOut)
 		}

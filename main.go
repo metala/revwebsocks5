@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -38,6 +40,11 @@ var rootCmd = &cobra.Command{
     revwebsocks5 client -c https://localhost:8443 -P SuperSecretPassword --tls-cert ./tls/server.crt
 3) Connect to 127.0.0.1:1080 on the host with any SOCKS5 client.
 4) Enjoy.`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if quiet {
+			log.SetOutput(ioutil.Discard)
+		}
+	},
 }
 
 var mooCmd = &cobra.Command{

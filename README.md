@@ -1,7 +1,6 @@
 # revwebsocks5
 
-Reverse SOCKS5 tunnel over WebSocket with TLS and proxy support  
-Forked from <https://github.com/kost/revsocks>
+Reverse SOCKS5 tunnel over TLS-secured WebSocket with proxy support
 
 ## Use Case
 
@@ -25,8 +24,6 @@ When behind a (L7 inspecting) firewall and/or HTTP proxy and you are unable to s
 
     Available Commands:
       client      Client connects to server
-      completion  Generate the autocompletion script for the specified shell
-      help        Help about any command
       keygen      generates a key and certificate
       server      Start a HTTPS server for client agents
 
@@ -34,8 +31,6 @@ When behind a (L7 inspecting) firewall and/or HTTP proxy and you are unable to s
       -d, --debug   display debug info
       -h, --help    help for revwebsocks5
       -q, --quiet   Be quiet
-
-    Use "revwebsocks5 [command] --help" for more information about a command.
 
 
 # Design
@@ -56,6 +51,10 @@ The client established a connection multiplexing (yamux) over WebSocket over HTT
 * `github.com/refraction-networking/utls` - custom `ClientHello` and prevents TLS fingerprinting
 * `github.com/spf13/cobra` - commands and POSIX cli options
 * `golang.org/x/net` - proxy and websocket support
+
+# Acknowledgments
+
+This project is forked from <https://github.com/kost/revsocks>, which is based on <https://github.com/brimstone/rsocks> and <https://github.com/llkat/rsockstun>.
 
 # Disclaimer
 

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -22,9 +21,6 @@ var serverCmd = &cobra.Command{
 	Long: `The server commands stars a WebSocket HTTPS service that waits for 
 client agents to establish a reverse tunnel.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if quiet {
-			log.SetOutput(ioutil.Discard)
-		}
 		if password == "" {
 			password = RandString(64)
 			log.Println("No password specified. Generated password is " + password)
