@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"io"
 	"log"
@@ -26,9 +27,9 @@ client agents to establish a reverse tunnel.`,
 			log.Println("No password specified. Generated password is " + password)
 		}
 		srv := server{
-			agentpassword: password,
-			socksBind:     socksBind,
-			socksPort:     socksPort,
+			password:  []byte(password),
+			socksBind: socksBind,
+			socksPort: socksPort,
 		}
 		wsSrv := &http.Server{
 			Handler:      srv.WsHandler(),
@@ -36,12 +37,11 @@ client agents to establish a reverse tunnel.`,
 			ReadTimeout:  30 * time.Second,
 			WriteTimeout: 30 * time.Second,
 			ErrorLog:     log.Default(),
-			ConnState: func(c net.Conn, cs http.ConnState) {
-				if !debug {
-					return
-				}
+		}
+		if debug {
+			wsSrv.ConnState = func(c net.Conn, cs http.ConnState) {
 				log.Printf("[%s] state: %s", c.RemoteAddr(), cs)
-			},
+			}
 		}
 		cert, err := tls.LoadX509KeyPair(tlsCert, tlsKey)
 		if err != nil {
@@ -82,9 +82,9 @@ func init() {
 }
 
 type server struct {
-	agentpassword string
-	socksBind     string
-	socksPort     uint16
+	password  []byte
+	socksBind string
+	socksPort uint16
 }
 
 func (s *server) agentHandler(conn *websocket.Conn) {
@@ -103,8 +103,12 @@ func (s *server) agentHandler(conn *websocket.Conn) {
 func (s *server) WsHandler() http.HandlerFunc {
 	wsAgentHandler := websocket.Handler(s.agentHandler)
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("[%s] New agent negotiation.", r.RemoteAddr)
-		if r.Header.Get("authorization") != s.agentpassword {
+		if debug {
+			log.Printf("[%s] New agent negotiation.", r.RemoteAddr)
+		}
+
+		authz := []byte(r.Header.Get("authorization"))
+		if subtle.ConstantTimeCompare(authz, s.password) == 0 {
 			if debug {
 				log.Printf("[%s] Error: Invalid password", r.RemoteAddr)
 			}
